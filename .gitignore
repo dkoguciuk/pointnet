@@ -1,0 +1,8 @@
+*~
+*.pyc
+.idea/
+data/
+logs/
+log/
+selected_models/
+
