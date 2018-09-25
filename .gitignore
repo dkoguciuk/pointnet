@@ -1,8 +1,9 @@
 *~
 *.pyc
-.idea/
-data/
-logs/
-log/
-selected_models/
-
+.idea/*
+logs/*
+selected_models/*
+data/*
+dump/*
+log/*
+.ipynb_checkpoints/*
