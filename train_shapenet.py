@@ -49,7 +49,7 @@ LOG_FOUT = open(os.path.join(LOG_DIR, 'log_train.txt'), 'w')
 LOG_FOUT.write(str(FLAGS)+'\n')
 
 MAX_NUM_POINT = 2048
-NUM_CLASSES = 40
+NUM_CLASSES = 55
 
 BN_INIT_DECAY = 0.5
 BN_DECAY_DECAY_RATE = 0.5
@@ -59,10 +59,8 @@ BN_DECAY_CLIP = 0.99
 HOSTNAME = socket.gethostname()
 
 # ModelNet40 official train/test split
-TRAIN_FILES = provider.getDataFiles( \
-    os.path.join(BASE_DIR, 'data/modelnet40_ply_hdf5_2048/train_files.txt'))
-TEST_FILES = provider.getDataFiles(\
-    os.path.join(BASE_DIR, 'data/modelnet40_ply_hdf5_2048/test_files.txt'))
+TRAIN_FILES = provider.getDataFiles(os.path.join(BASE_DIR, 'data/shapenet55_1024/train_files.txt'))
+TEST_FILES = provider.getDataFiles(os.path.join(BASE_DIR, 'data/shapenet55_1024/test_files.txt'))
 
 def log_string(out_str):
     LOG_FOUT.write(out_str+'\n')
@@ -134,8 +132,7 @@ def train():
         # Add summary writers
         #merged = tf.merge_all_summaries()
         merged = tf.summary.merge_all()
-        train_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, 'train'),
-                                  sess.graph)
+        train_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, 'train'), sess.graph)
         test_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, 'test'))
 
         # Init variables
@@ -178,7 +175,7 @@ def train_one_epoch(sess, ops, train_writer):
     
     for fn in range(len(TRAIN_FILES)):
         log_string('----' + str(fn) + '-----')
-        current_data, current_label = provider.loadDataFile(TRAIN_FILES[train_file_idxs[fn]])
+        current_data, current_label = provider.load_h5(TRAIN_FILES[train_file_idxs[fn]], train=True)
         current_data = current_data[:,0:NUM_POINT,:]
         current_data, current_label, _ = provider.shuffle_data(current_data, np.squeeze(current_label))            
         current_label = np.squeeze(current_label)
@@ -208,7 +205,7 @@ def train_one_epoch(sess, ops, train_writer):
             total_correct += correct
             total_seen += BATCH_SIZE
             loss_sum += loss_val
-        
+
         log_string('mean loss: %f' % (loss_sum / float(num_batches)))
         log_string('accuracy: %f' % (total_correct / float(total_seen)))
 
@@ -224,7 +221,7 @@ def eval_one_epoch(sess, ops, test_writer):
     
     for fn in range(len(TEST_FILES)):
         log_string('----' + str(fn) + '-----')
-        current_data, current_label = provider.loadDataFile(TEST_FILES[fn])
+        current_data, current_label = provider.load_h5(TEST_FILES[fn], train=False)
         current_data = current_data[:,0:NUM_POINT,:]
         current_label = np.squeeze(current_label)
         
