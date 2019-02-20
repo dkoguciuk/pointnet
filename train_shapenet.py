@@ -24,7 +24,11 @@ parser.add_argument('--batch_size', type=int, default=32, help='Batch Size durin
 parser.add_argument('--learning_rate', type=float, default=0.001, help='Initial learning rate [default: 0.001]')
 parser.add_argument('--momentum', type=float, default=0.9, help='Initial learning rate [default: 0.9]')
 parser.add_argument('--optimizer', default='adam', help='adam or momentum [default: adam]')
-parser.add_argument('--decay_step', type=int, default=200000, help='Decay step for lr decay [default: 200000]')
+
+# Shapenet55 training size (41953) / modelnet training size (9840) = 4.26 * 200k = 850k
+#parser.add_argument('--decay_step', type=int, default=200000, help='Decay step for lr decay [default: 200000]')
+parser.add_argument('--decay_step', type=int, default=850000, help='Decay step for lr decay [default: 850000]')
+
 parser.add_argument('--decay_rate', type=float, default=0.7, help='Decay rate for lr decay [default: 0.8]')
 FLAGS = parser.parse_args()
 
@@ -59,8 +63,8 @@ BN_DECAY_CLIP = 0.99
 HOSTNAME = socket.gethostname()
 
 # ModelNet40 official train/test split
-TRAIN_FILES = provider.getDataFiles(os.path.join(BASE_DIR, 'data/shapenet55_1024/train_files.txt'))
-TEST_FILES = provider.getDataFiles(os.path.join(BASE_DIR, 'data/shapenet55_1024/test_files.txt'))
+TRAIN_FILES = provider.getDataFiles(os.path.join(BASE_DIR, 'data/shapenet_core55_1024/train_files.txt'))
+TEST_FILES = provider.getDataFiles(os.path.join(BASE_DIR, 'data/shapenet_core55_1024/test_files.txt'))
 
 def log_string(out_str):
     LOG_FOUT.write(out_str+'\n')
@@ -175,7 +179,7 @@ def train_one_epoch(sess, ops, train_writer):
     
     for fn in range(len(TRAIN_FILES)):
         log_string('----' + str(fn) + '-----')
-        current_data, current_label = provider.load_h5(TRAIN_FILES[train_file_idxs[fn]], train=True)
+        current_data, current_label = provider.loadDataFile(TRAIN_FILES[train_file_idxs[fn]])
         current_data = current_data[:,0:NUM_POINT,:]
         current_data, current_label, _ = provider.shuffle_data(current_data, np.squeeze(current_label))            
         current_label = np.squeeze(current_label)
@@ -221,7 +225,7 @@ def eval_one_epoch(sess, ops, test_writer):
     
     for fn in range(len(TEST_FILES)):
         log_string('----' + str(fn) + '-----')
-        current_data, current_label = provider.load_h5(TEST_FILES[fn], train=False)
+        current_data, current_label = provider.loadDataFile(TEST_FILES[fn])
         current_data = current_data[:,0:NUM_POINT,:]
         current_label = np.squeeze(current_label)
         
@@ -246,7 +250,7 @@ def eval_one_epoch(sess, ops, test_writer):
                 l = current_label[i]
                 total_seen_class[l] += 1
                 total_correct_class[l] += (pred_val[i-start_idx] == l)
-            
+
     log_string('eval mean loss: %f' % (loss_sum / float(total_seen)))
     log_string('eval accuracy: %f'% (total_correct / float(total_seen)))
     log_string('eval avg class acc: %f' % (np.mean(np.array(total_correct_class)/np.array(total_seen_class,dtype=np.float))))

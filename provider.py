@@ -93,16 +93,6 @@ def load_h5(h5_filename):
     label = f['label'][:]
     return (data, label)
 
-def load_h5(h5_filename, train):
-    f = h5py.File(h5_filename)
-    if train:
-        data = f['clouds_train'][:]
-        label = f['labels_train'][:]
-    else:
-        data = f['clouds_test'][:]
-        label = f['labels_test'][:]
-    return (data, label)
-
 def loadDataFile(filename):
     return load_h5(filename)
 
