@@ -15,7 +15,6 @@ sys.path.append(os.path.join(BASE_DIR, 'utils'))
 import provider
 import pc_util
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, default=0, help='GPU to use [default: GPU 0]')
 parser.add_argument('--model', default='pointnet_cls', help='Model name: pointnet_cls or pointnet_cls_basic [default: pointnet_cls]')
@@ -24,6 +23,7 @@ parser.add_argument('--num_point', type=int, default=1024, help='Point Number [2
 parser.add_argument('--model_path', default='log/model.ckpt', help='model checkpoint file path [default: log/model.ckpt]')
 parser.add_argument('--dump_dir', default='dump', help='dump folder path [dump]')
 parser.add_argument('--visu', action='store_true', help='Whether to dump image for error case [default: False]')
+parser.add_argument('--verbose', action='store_true', help='Whether to print additional info (i.e. flops) [default: False]')
 FLAGS = parser.parse_args()
 
 
@@ -33,6 +33,7 @@ MODEL_PATH = FLAGS.model_path
 GPU_INDEX = FLAGS.gpu
 MODEL = importlib.import_module(FLAGS.model) # import network module
 DUMP_DIR = FLAGS.dump_dir
+VERBOSE = FLAGS.verbose
 if not os.path.exists(DUMP_DIR): os.mkdir(DUMP_DIR)
 LOG_FOUT = open(os.path.join(DUMP_DIR, 'log_evaluate.txt'), 'w')
 LOG_FOUT.write(str(FLAGS)+'\n')
@@ -62,13 +63,14 @@ def evaluate(num_votes):
         is_training_pl = tf.placeholder(tf.bool, shape=())
 
         # simple model
-        pred, end_points = MODEL.get_model(pointclouds_pl, is_training_pl)
+        pred, end_points = MODEL.get_model(pointclouds_pl, is_training_pl, num_classes=NUM_CLASSES)
         loss = MODEL.get_loss(pred, labels_pl, end_points)
         
         # Add ops to save and restore all the variables.
         saver = tf.train.Saver()
         
     # Create a session
+    run_metadata = tf.RunMetadata()
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     config.allow_soft_placement = True
@@ -85,10 +87,10 @@ def evaluate(num_votes):
            'pred': pred,
            'loss': loss}
 
-    eval_one_epoch(sess, ops, num_votes)
+    eval_one_epoch(sess, ops, num_votes, run_metadata=run_metadata)
 
    
-def eval_one_epoch(sess, ops, num_votes=1, topk=1):
+def eval_one_epoch(sess, ops, num_votes=1, topk=1, run_metadata=None):
     error_cnt = 0
     is_training = False
     total_correct = 0
@@ -99,6 +101,7 @@ def eval_one_epoch(sess, ops, num_votes=1, topk=1):
     total_time = 0.
     total_batches = 0.
     fout = open(os.path.join(DUMP_DIR, 'pred_label.txt'), 'w')
+
     for fn in range(len(TEST_FILES)):
         log_string('----'+str(fn)+'----')
         current_data, current_label = provider.loadDataFile(TEST_FILES[fn])
@@ -128,7 +131,7 @@ def eval_one_epoch(sess, ops, num_votes=1, topk=1):
                 # Time measurement
                 start = timer()
                 loss_val, pred_val = sess.run([ops['loss'], ops['pred']],
-                                          feed_dict=feed_dict)
+                                          feed_dict=feed_dict)#,  options=tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE), run_metadata=run_metadata)
                 end = timer()
                 if batch_idx != 0:
                     total_time += (end-start)
@@ -162,14 +165,17 @@ def eval_one_epoch(sess, ops, num_votes=1, topk=1):
                     output_img = pc_util.point_cloud_three_views(np.squeeze(current_data[i, :, :]))
                     scipy.misc.imsave(img_filename, output_img)
                     error_cnt += 1
-                
+
+    if VERBOSE:
+        flops = tf.profiler.profile(sess.graph, options = tf.profiler.ProfileOptionBuilder.float_operation(), run_meta=run_metadata)
+        log_string('flops: %f' % (flops.total_float_ops))
+
     log_string('eval mean loss: %f' % (loss_sum / float(total_seen)))
     log_string('eval accuracy: %f' % (total_correct / float(total_seen)))
     log_string('eval avg class acc: %f' % (np.mean(np.array(total_correct_class)/np.array(total_seen_class,dtype=np.float))))
     log_string('mean evaluation time of one batch: %f' % (total_time / total_batches))
     parameter_num = np.sum([np.prod(v.shape.as_list()) for v in tf.trainable_variables()])
-    log_string('parameter number: %f' % (parameter_num))
-
+    log_string('number of trainable parameters: %f' % (parameter_num))
     class_accuracies = np.array(total_correct_class)/np.array(total_seen_class,dtype=np.float)
     for i, name in enumerate(SHAPE_NAMES):
         log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
