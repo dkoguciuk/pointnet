@@ -39,7 +39,11 @@ To train a model to classify point clouds sampled from 3D shapes:
 
 Log files and network parameters will be saved to `log` folder in default. Point clouds of <a href="http://modelnet.cs.princeton.edu/" target="_blank">ModelNet40</a> models in HDF5 files will be automatically downloaded (416MB) to the data folder. Each point cloud contains 2048 points uniformly sampled from a shape surface. Each cloud is zero-mean and normalized into an unit sphere. There are also text files in `data/modelnet40_ply_hdf5_2048` specifying the ids of shapes in h5 files.
 
-To see HELP for the training script:
+One can also train PointNet classifier on ShapeNet Core55 dataset using `--dataset` keyword:
+
+    python train.py --dataset shapenet
+
+More about data shapenet data preparation in <a href="https://github.com/dkoguciuk/ensemble_learning_for_point_clouds" target="_blank">ensemble_learning_for_point_clouds</a> repository. To see HELP for the training script:
 
     python train.py -h
 
@@ -51,9 +55,10 @@ After the above training, we can evaluate the model and output some visualizatio
 
     python evaluate.py --visu
 
-Point clouds that are wrongly classified will be saved to `dump` folder in default. We visualize the point cloud by rendering it into three-view images.
+Point clouds that are wrongly classified will be saved to `dump` folder in default. We visualize the point cloud by rendering it into three-view images. If you'd like to prepare your own data, you can refer to some helper functions in `utils/data_prep_util.py` for saving and loading HDF5 files.
 
-If you'd like to prepare your own data, you can refer to some helper functions in `utils/data_prep_util.py` for saving and loading HDF5 files.
+### Ensemble learning
+To train multiple instances of PoinetNet models you can use train.sh bash script and then evaluate_ens.ipynb to generate data for further analysis in <a href="https://github.com/dkoguciuk/ensemble_learning_for_point_clouds" target="_blank">ensemble_learning_for_point_clouds</a> repository.
 
 ### Part Segmentation
 To train a model for object part segmentation, firstly download the data:

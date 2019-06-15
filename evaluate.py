@@ -15,6 +15,7 @@ sys.path.append(os.path.join(BASE_DIR, 'utils'))
 import provider
 import pc_util
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, default=0, help='GPU to use [default: GPU 0]')
 parser.add_argument('--model', default='pointnet_cls', help='Model name: pointnet_cls or pointnet_cls_basic [default: pointnet_cls]')

@@ -34,6 +34,7 @@ def get_model(point_cloud, is_training, num_classes, bn_decay=None):
                          padding='VALID', stride=[1,1],
                          bn=True, is_training=is_training,
                          scope='conv2', bn_decay=bn_decay)
+    point_features = net
 
     with tf.variable_scope('transform_net2') as sc:
         transform = feature_transform_net(net, is_training, bn_decay, K=64)
@@ -69,7 +70,7 @@ def get_model(point_cloud, is_training, num_classes, bn_decay=None):
                           scope='dp2')
     net = tf_util.fully_connected(net, num_classes, activation_fn=None, scope='fc3')
 
-    return net, end_points
+    return net, end_points, point_features
 
 
 def get_loss(pred, label, end_points, reg_weight=0.001):

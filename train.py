@@ -59,7 +59,7 @@ if DATASET == 'modelnet':
 elif DATASET == 'shapenet':
     NUM_CLASSES = 55
     TRAIN_FILES = provider.getDataFiles(os.path.join(BASE_DIR, 'data/shapenet_core55_1024/train_files.txt'))
-TEST_FILES = provider.getDataFiles(os.path.join(BASE_DIR, 'data/shapenet_core55_1024/test_files.txt'))
+    TEST_FILES = provider.getDataFiles(os.path.join(BASE_DIR, 'data/shapenet_core55_1024/test_files.txt'))
 
 BN_INIT_DECAY = 0.5
 BN_DECAY_DECAY_RATE = 0.5
